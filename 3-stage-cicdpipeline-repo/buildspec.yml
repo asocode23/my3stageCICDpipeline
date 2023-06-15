@@ -1,0 +1,32 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+  pre_build:
+    commands:
+      - echo -WE ARE IN THE PREBUILD PHASE-
+      - echo CHECK 1 - HAS PYTHON BEEN INSTALLED?
+      - python --version
+      - echo CHECK 2 - HAS PIP3 BEEN INSTALLED?
+      - pip3 --version
+      - echo INSTALL CFN-LINT
+      - pip3 install cfn-lint
+      - echo CHECK 3 - HAS CFN-LINT BEEN INSTALLED?
+      - cfn-lint --version      
+  build:
+    commands:
+      - echo ====Testing our CFN Template====
+      - cfn-lint Api-EC2Template-cicdpipeline.yml
+      - echo ====Running our CFN Template====
+      - aws cloudformation package --template-file Api-EC2Template-cicdpipeline.yml --s3-bucket my3stagecicdpipeline-bucket --output-template-file OutputTemplate.yaml
+
+  post_build:
+    commands:
+      - echo -WE ARE IN THE POSTBUILD PHASE-
+      - echo ====Build completed on `date`====
+artifacts:
+  files:
+    - Api-Buildspec-cicdpipeline.yml
+    - OutputTemplate.yaml

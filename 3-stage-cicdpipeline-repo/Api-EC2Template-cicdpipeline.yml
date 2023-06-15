@@ -1,0 +1,78 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: > 
+  "Template to launch an EC2 instance in an existing VPC either in us-west-2 or us-east-1, with the possibility to choose the AMI type (linux or Ubuntu)"
+Resources:
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      SubnetId : !FindInMap [SubnetIDFamily, !Ref "AWS::Region", !Ref SubnetId]
+      SecurityGroupIds: 
+        - !FindInMap [SecurityGroupIDsFamily, !Ref "AWS::Region", !Ref SecurityGroupId]
+      KeyName: !Ref KeyName
+      Tags: 
+        - Key: "Name"
+          Value: "myEC2Instance"
+      ImageId: !FindInMap [RegionAndAmiFamily, !Ref "AWS::Region", !Ref AmiFamily]
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y httpd
+          systemctl start httpd
+          systemctl enable httpd
+          echo "
+          <html>
+          <body bgcolor=#f1f1f1 text=Purple>
+          <h1>Hello from Server in ${AWS::Region}</h1>
+          </body>
+          </html>
+          " > /var/www/html/index.html           
+
+Parameters: 
+  AmiFamily: 
+    Description: The AMI family
+    Type: String
+    Default: linux
+    AllowedValues: 
+      - linux
+      - ubuntu
+    ConstraintDescription: must be a linux or ubuntu
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: name of the key pair to ssh into the instance
+  SubnetId:
+    Type: String
+    Description: Subnet in which to launch an EC2
+    Default: Public1
+    AllowedValues: 
+      - Public1
+      - Public2
+    ConstraintDescription: must select one
+  SecurityGroupId:
+    Type: String
+    Description: Security group attached to the EC2
+    Default: SG
+    ConstraintDescription: no need to select one
+
+
+Mappings: 
+  RegionAndAmiFamily: 
+    us-west-2: 
+      linux: "ami-04e914639d0cca79a"
+      ubuntu: "ami-0fcf52bcf5db7b003"
+    us-east-1: 
+      linux: "ami-0889a44b331db0194"
+      ubuntu: "ami-007855ac798b5175e"
+  SubnetIDFamily: 
+    us-west-2: 
+      Public1: "subnet-0d08e5ff2684bd45e"
+      Public2: "subnet-0142db16757ac6f1d"
+    us-east-1: 
+      Public1: "subnet-064ad37e3b8a7d672"
+      Public2: "subnet-0291794e346d6036b"
+  SecurityGroupIDsFamily: 
+    us-west-2: 
+      SG: "sg-0ab49abf7c6ada749"
+    us-east-1: 
+      SG: "sg-0184ebeb49f50fac0"
